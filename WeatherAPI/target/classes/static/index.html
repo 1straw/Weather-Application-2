@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Väder i Stockholm</title>
+</head>
+<body>
+<h1>Väder i Stockholm</h1>
+<p id="Stockholm">Hämtar väder...</p>
+<img id="img-stockholm" style="border: 5px solid #4CAF50; border-radius: 10px; padding: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); width: 100px; height: 100px;" />
+
+
+<h1>Väder i Göteborg</h1>
+<p id="Gothenburg">Hämtar väder...</p>
+<img id="img-goteborg" style="border: 5px solid #4CAF50; border-radius: 10px; padding: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); width: 100px; height: 100px;" />
+
+
+
+
+
+
+<script>
+    async function fetchWeatherStockholm() {
+        try {
+            const response = await fetch("http://localhost:8080/api/weather/stockholm");
+            const data = await response.json();
+            console.log(data);
+
+            const iconCode = data.weather[0].icon;
+            const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
+
+            document.getElementById('Stockholm').innerText = `Temperatur: ${data.main.temp}°C, Väder: ${data.weather[0].description}`;
+            document.getElementById('img-stockholm').setAttribute("src", iconUrl);
+        } catch (error) {
+            console.error("Kunde inte hämta vädret:", error);
+        }
+    }
+
+    async function fetchWeatherGothenburg() {
+        try {
+            const response = await fetch("http://localhost:8080/api/weather/goteborg");
+            const data = await response.json();
+
+            const iconCode = data.weather[0].icon;
+            const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
+            document.getElementById('Gothenburg').innerText = `Temperatur: ${data.main.temp}°C, Väder: ${data.weather[0].description}`;
+            document.getElementById('img-goteborg').setAttribute("src", iconUrl);
+        } catch (error) {
+            console.error("Kunde inte hämta vädret:", error);
+        }
+    }
+
+    fetchWeatherStockholm();
+    fetchWeatherGothenburg();
+    setInterval(fetchWeatherGothenburg, 3600000); // Uppdatera varje timme
+</script>
+</body>
+</html>

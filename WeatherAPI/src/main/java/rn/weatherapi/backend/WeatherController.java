@@ -19,14 +19,14 @@ public class WeatherController {
     public Mono<String> getWeatherStockholm() {
         String lat = "59.3251172";
         String lon  = "18.0710935";
-        return weatherService.getWeatherStockholm(lat, lon);
+        return weatherService.getWeather(lat, lon);
     }
 
     @GetMapping("/goteborg")
     public Mono<String> getWeatherGoteborg() {
         String lat = "57.422578";
         String lon  = "11.580443";
-        return weatherService.getWeatherStockholm(lat, lon);
+        return weatherService.getWeather(lat, lon);
     }
 
 }

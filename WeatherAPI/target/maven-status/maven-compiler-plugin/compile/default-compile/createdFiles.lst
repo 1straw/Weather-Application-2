@@ -1,0 +1,8 @@
+rn\weatherapi\backend\WeatherService.class
+rn\weatherapi\ApiController.class
+rn\weatherapi\backend\entity\City.class
+rn\weatherapi\backend\WeatherApiApplication.class
+rn\weatherapi\ApiService.class
+rn\weatherapi\backend\CityRepository.class
+rn\weatherapi\backend\WeatherController.class
+rn\weatherapi\backend\WebClientConfig.class
