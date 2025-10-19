@@ -1,0 +1,115 @@
+# Azure DevOps Pipeline för WeatherAPI till Azure Container Instances (ACI)
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    exclude:
+      - "*.md"
+      - "docs/**"
+
+variables:
+  # Service Connections (byt till dina korrekta namn)
+  dockerRegistryConnection: "ACR-Connection"
+  azureSubscription: "Azure-Service-Connection"
+
+  # Azure Resources
+  acrName: "catapiacr"
+  resourceGroup: "rg-cat-api"
+  location: "northeurope"
+
+  # Container/Image Names
+  backendContainerName: "weather-api-backend"
+  backendImageName: "$(acrName).azurecr.io/weather-api-backend"
+
+  # Image tag
+  imageTag: "$(Build.BuildId)"
+
+  # DNS namn (unika globalt)
+  backendDnsName: "weather-api-backend-$(Build.BuildId)"
+
+stages:
+
+  # Build & Push till ACR
+  - stage: Build
+    displayName: "Build and Push Backend to ACR"
+    jobs:
+      - job: BuildAndPush
+        displayName: "Build & Push Backend"
+        pool: Default
+        steps:
+          - task: Docker@2
+            displayName: "Build and Push WeatherAPI Backend"
+            inputs:
+              containerRegistry: "$(dockerRegistryConnection)"
+              repository: "weather-api-backend"
+              command: "buildAndPush"
+              Dockerfile: "WeatherAPI/Dockerfile"
+              buildContext: "WeatherAPI"
+              tags: |
+                $(imageTag)
+                latest
+
+          - task: PublishBuildArtifacts@1
+            displayName: "Publish Deployment Scripts"
+            inputs:
+              pathToPublish: ".azure/aci"
+              artifactName: "deployment-scripts"
+
+  # Deploy to Azure Container Instances
+  - stage: DeployDev
+    displayName: "Deploy Backend to Azure Container Instances (ACI)"
+    dependsOn: Build
+    condition: succeeded()
+    variables:
+      - group: "weather-api-aci-variables"   # Variable group i Azure DevOps med bl.a. API-nyckeln
+    jobs:
+      - deployment: DeployToACI
+        displayName: "Deploy WeatherAPI Backend"
+        pool: Default
+        environment: "dev-aci"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureCLI@2
+                  displayName: "Deploy WeatherAPI Container to ACI"
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    scriptType: "bash"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      # Ta bort ev. gammal container
+                      az container delete \
+                        --resource-group $(resourceGroup) \
+                        --name $(backendContainerName)-dev \
+                        --yes || true
+
+                      # Deploya ny container
+                      az container create \
+                        --resource-group $(resourceGroup) \
+                        --name $(backendContainerName)-dev \
+                        --image $(backendImageName):$(imageTag) \
+                        --registry-login-server $(acrName).azurecr.io \
+                        --registry-username $(ACR_USERNAME) \
+                        --registry-password $(ACR_PASSWORD) \
+                        --dns-name-label $(backendContainerName)-dev \
+                        --ports 8080 \
+                        --cpu 1 \
+                        --memory 1.5 \
+                        --location $(location) \
+                        --os-type Linux \
+                        --environment-variables \
+                          OPENWEATHER_API_KEY="$(OPENWEATHER_API_KEY)" \
+                          SPRING_PROFILES_ACTIVE=development \
+                          SERVER_PORT=8080
+
+                      # Output info
+                      BACKEND_URL=$(az container show \
+                        --resource-group $(resourceGroup) \
+                        --name $(backendContainerName)-dev \
+                        --query ipAddress.fqdn \
+                        --output tsv)
+
+                      echo "Weather API deployed at: http://${BACKEND_URL}:8080"
