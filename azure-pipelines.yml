@@ -15,8 +15,8 @@ variables:
   azureSubscription: "Azure-Service-Connection"
 
   # Azure Resources
-  acrName: "catapiacr"
-  resourceGroup: "rg-cat-api"
+  acrName: "weatherapiacr"
+  resourceGroup: "rg-weather-api"
   location: "northeurope"
 
   # Container/Image Names
